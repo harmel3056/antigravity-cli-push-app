@@ -1149,3 +1149,9 @@ body.light-theme .search-box input {
 body.light-theme .status-indicator {
     box-shadow: none !important;
 }
+
+body.light-theme .logo-text h1 {
+    background: linear-gradient(115deg, var(--accent-indigo) 30%, var(--accent-violet) 90%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
