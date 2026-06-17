@@ -48,7 +48,9 @@ const elements = {
     charCountNum: document.getElementById('charCountNum'),
     progressCircle: document.getElementById('progressCircle'),
     themeToggleBtn: document.getElementById('themeToggleBtn'),
-    exportCsvBtn: document.getElementById('exportCsvBtn')
+    exportCsvBtn: document.getElementById('exportCsvBtn'),
+    toggleAutoTruncate: document.getElementById('toggleAutoTruncate'),
+    scrollTopBtn: document.getElementById('scrollTopBtn')
 };
 
 // Initialize App
@@ -110,6 +112,7 @@ function setupEventListeners() {
     elements.tweetTextarea.addEventListener('input', updateTweetCharacterCount);
     elements.toggleLink.addEventListener('change', generateTweetDraft);
     elements.toggleHashtags.addEventListener('change', generateTweetDraft);
+    elements.toggleAutoTruncate.addEventListener('change', generateTweetDraft);
     
     // Send Tweet
     elements.submitTweetBtn.addEventListener('click', submitTweet);
@@ -117,6 +120,25 @@ function setupEventListeners() {
     // Theme Switcher & CSV Export
     elements.themeToggleBtn.addEventListener('click', toggleTheme);
     elements.exportCsvBtn.addEventListener('click', exportToCSV);
+
+    // Scroll to Top action
+    elements.scrollTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 400) {
+            elements.scrollTopBtn.classList.remove('hidden');
+            setTimeout(() => elements.scrollTopBtn.classList.add('visible'), 10);
+        } else {
+            elements.scrollTopBtn.classList.remove('visible');
+            setTimeout(() => {
+                if (!elements.scrollTopBtn.classList.contains('visible')) {
+                    elements.scrollTopBtn.classList.add('hidden');
+                }
+            }, 300);
+        }
+    });
 }
 
 // SETUP PROGRESS RING ON INITIAL LOAD
@@ -144,6 +166,14 @@ async function fetchReleases(forceRefresh = false) {
         allReleases = data.releases || [];
         updateCacheIndicator(data);
         applyFilterAndSearch();
+        
+        // Success Toast Notification
+        const totalItems = allReleases.reduce((acc, rel) => acc + (rel.sections ? rel.sections.length : 0), 0);
+        if (forceRefresh) {
+            showToast(`Successfully refreshed and parsed ${totalItems} live updates!`, 'success');
+        } else {
+            showToast(`Successfully loaded ${totalItems} releases from cache.`, 'success');
+        }
         
     } catch (error) {
         console.error("Error fetching release notes:", error);
@@ -229,6 +259,7 @@ function applyFilterAndSearch() {
         }
     });
     
+    updateChipCounters();
     renderTimeline();
 }
 
@@ -279,7 +310,7 @@ function renderTimeline() {
                         </a>
                     </div>
                     <div class="card-body">
-                        ${sec.html}
+                        ${highlightSearchText(sec.html, searchKeyword)}
                     </div>
                     <div class="card-footer">
                         <button class="btn btn-copy" onclick="copyToClipboard('${escapeJsString(sec.text)}', this)">
@@ -343,6 +374,7 @@ function openTweetModal(text, type, date, link) {
     // Default toggles on
     elements.toggleLink.checked = true;
     elements.toggleHashtags.checked = true;
+    elements.toggleAutoTruncate.checked = true;
     
     // Generate draft
     generateTweetDraft();
@@ -369,26 +401,38 @@ function generateTweetDraft() {
     };
     
     const emoji = emojis[selectedUpdate.type] || '⚡';
+    const header = `${emoji} [BigQuery Release - ${selectedUpdate.date}]\n\n${selectedUpdate.type}: `;
     
-    // Maximize text spacing and content structure
-    let draft = `${emoji} [BigQuery Release - ${selectedUpdate.date}]\n`;
-    draft += `\n${selectedUpdate.type}: ${selectedUpdate.text}`;
-    
-    // Trim descriptive text if draft would exceed 180 characters, to leave space for hashtags/urls
-    const rawLimit = 160;
-    if (selectedUpdate.text.length > rawLimit) {
-        draft = `${emoji} [BigQuery Release - ${selectedUpdate.date}]\n`;
-        draft += `\n${selectedUpdate.type}: ${selectedUpdate.text.substring(0, rawLimit)}...`;
-    }
-    
+    let linkPart = '';
     if (elements.toggleLink.checked) {
-        draft += `\n\n🔗 ${selectedUpdate.link}`;
+        linkPart = `\n\n🔗 ${selectedUpdate.link}`;
     }
     
+    let hashPart = '';
     if (elements.toggleHashtags.checked) {
-        draft += `\n\n#BigQuery #GoogleCloud #DataEngineering`;
+        hashPart = `\n\n#BigQuery #GoogleCloud #DataEngineering`;
     }
     
+    let bodyText = selectedUpdate.text;
+    
+    if (elements.toggleAutoTruncate.checked) {
+        // Accurately calculate exact remaining budget for description body
+        const rawHeaderLength = header.length;
+        const rawHashLength = hashPart.length;
+        
+        // Link counts as 23 characters on Twitter. "🔗 \n\n" is 4 characters.
+        const linkPartShortenedLength = elements.toggleLink.checked ? (linkPart.replace(selectedUpdate.link, '').length + 23) : 0;
+        
+        const surroundingLength = rawHeaderLength + rawHashLength + linkPartShortenedLength;
+        const descriptionBudget = 280 - surroundingLength;
+        
+        if (bodyText.length > descriptionBudget) {
+            const truncatedLength = Math.max(0, descriptionBudget - 3);
+            bodyText = bodyText.substring(0, truncatedLength) + '...';
+        }
+    }
+    
+    const draft = `${header}${bodyText}${linkPart}${hashPart}`;
     elements.tweetTextarea.value = draft;
     updateTweetCharacterCount();
 }
@@ -466,6 +510,7 @@ function toggleTheme() {
 // COPY TO CLIPBOARD FUNCTION
 function copyToClipboard(text, btn) {
     navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied update description to clipboard!", "success");
         btn.classList.add('copied');
         const span = btn.querySelector('span');
         const originalHtml = btn.innerHTML;
@@ -526,6 +571,7 @@ function exportToCSV() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    showToast(`Successfully exported ${csvRows.length - 1} items to CSV!`, "success");
 }
 
 // UTIL: ESCAPE SPECIAL CHARACTERS FOR INLINE HANDLERS
@@ -535,4 +581,106 @@ function escapeJsString(str) {
         .replace(/'/g, "\\'")
         .replace(/"/g, '&quot;')
         .replace(/\r?\n/g, ' ');
+}
+
+// ==========================================
+// UX ADDITIONS & HELPER METHODS
+// ==========================================
+
+// 1. Dynamic Chip Counters Calculation
+function updateChipCounters() {
+    const counts = {
+        all: 0,
+        Feature: 0,
+        Issue: 0,
+        Announcement: 0,
+        Deprecation: 0
+    };
+    
+    allReleases.forEach(release => {
+        release.sections.forEach(sec => {
+            const textToSearch = `${sec.type} ${sec.text}`.toLowerCase();
+            const matchesSearch = !searchKeyword || textToSearch.includes(searchKeyword);
+            
+            if (matchesSearch) {
+                counts.all++;
+                if (counts[sec.type] !== undefined) {
+                    counts[sec.type]++;
+                }
+            }
+        });
+    });
+    
+    document.querySelectorAll('.chip').forEach(chip => {
+        const filter = chip.dataset.filter;
+        const countSpan = chip.querySelector('.chip-count');
+        if (countSpan && counts[filter] !== undefined) {
+            countSpan.textContent = `(${counts[filter]})`;
+        }
+    });
+}
+
+// 2. Safe DOM-aware Search Highlight Replacement
+function highlightSearchText(htmlString, keyword) {
+    if (!keyword) return htmlString;
+    
+    try {
+        const escapedKeyword = keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlString;
+        
+        const walkAndHighlight = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.nodeValue;
+                if (regex.test(text)) {
+                    const span = document.createElement('span');
+                    span.innerHTML = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+                    node.parentNode.replaceChild(span, node);
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.nodeName !== 'A' && node.nodeName !== 'SCRIPT' && node.nodeName !== 'STYLE') {
+                Array.from(node.childNodes).forEach(child => walkAndHighlight(child));
+            }
+        };
+        
+        Array.from(tempDiv.childNodes).forEach(node => walkAndHighlight(node));
+        return tempDiv.innerHTML;
+    } catch (e) {
+        console.error("Failed to highlight search term:", e);
+        return htmlString; // Fallback safely if DOM parsing throws an error
+    }
+}
+
+// 3. Elegant Non-blocking Toast Popup Trigger
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    
+    let icon = '✨';
+    if (type === 'success') icon = '✅';
+    else if (type === 'info') icon = 'ℹ️';
+    else if (type === 'warning') icon = '⚠️';
+    else if (type === 'error') icon = '❌';
+    
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Force a CSS trigger repaint
+    toast.offsetHeight;
+    
+    toast.classList.add('show');
+    
+    // Smooth transition removal
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 3500);
 }
