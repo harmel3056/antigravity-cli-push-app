@@ -46,11 +46,14 @@ const elements = {
     toggleHashtags: document.getElementById('toggleHashtags'),
     charCounter: document.getElementById('charCounter'),
     charCountNum: document.getElementById('charCountNum'),
-    progressCircle: document.getElementById('progressCircle')
+    progressCircle: document.getElementById('progressCircle'),
+    themeToggleBtn: document.getElementById('themeToggleBtn'),
+    exportCsvBtn: document.getElementById('exportCsvBtn')
 };
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     fetchReleases(false);
     setupEventListeners();
     setupProgressRing();
@@ -110,6 +113,10 @@ function setupEventListeners() {
     
     // Send Tweet
     elements.submitTweetBtn.addEventListener('click', submitTweet);
+    
+    // Theme Switcher & CSV Export
+    elements.themeToggleBtn.addEventListener('click', toggleTheme);
+    elements.exportCsvBtn.addEventListener('click', exportToCSV);
 }
 
 // SETUP PROGRESS RING ON INITIAL LOAD
@@ -275,6 +282,13 @@ function renderTimeline() {
                         ${sec.html}
                     </div>
                     <div class="card-footer">
+                        <button class="btn btn-copy" onclick="copyToClipboard('${escapeJsString(sec.text)}', this)">
+                            <svg class="icon-copy" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <span>Copy</span>
+                        </button>
                         <button class="btn btn-tweet" onclick="openTweetModal('${escapeJsString(sec.text)}', '${sec.type}', '${group.title}', '${group.link}')">
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                                 <path d="M18.244 2.25h3.308l-7.227 7.56 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.085L1.254 2.25h6.8l4.82 6.384zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
@@ -421,6 +435,97 @@ function submitTweet() {
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
     closeModal();
+}
+
+// THEME SWITCHER LOGIC
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        elements.themeToggleBtn.querySelector('.icon-sun').classList.remove('hidden');
+        elements.themeToggleBtn.querySelector('.icon-moon').classList.add('hidden');
+    }
+}
+
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    
+    const sunIcon = elements.themeToggleBtn.querySelector('.icon-sun');
+    const moonIcon = elements.themeToggleBtn.querySelector('.icon-moon');
+    
+    if (isLight) {
+        sunIcon.classList.remove('hidden');
+        moonIcon.classList.add('hidden');
+    } else {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+    }
+}
+
+// COPY TO CLIPBOARD FUNCTION
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('copied');
+        const span = btn.querySelector('span');
+        const originalHtml = btn.innerHTML;
+        
+        btn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Copied!</span>
+        `;
+        
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = originalHtml;
+        }, 1500);
+    }).catch(err => {
+        console.error('Failed to copy release update: ', err);
+    });
+}
+
+// EXPORT TO CSV SYSTEM
+function exportToCSV() {
+    const csvRows = [];
+    
+    // Header
+    csvRows.push(['Date', 'Category', 'Update Link', 'Description']);
+    
+    filteredReleases.forEach(group => {
+        group.sections.forEach(sec => {
+            const dateVal = `"${group.title.replace(/"/g, '""')}"`;
+            const catVal = `"${sec.type.replace(/"/g, '""')}"`;
+            const linkVal = `"${group.link.replace(/"/g, '""')}"`;
+            const descVal = `"${sec.text.replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
+            
+            csvRows.push([dateVal, catVal, linkVal, descVal]);
+        });
+    });
+    
+    if (csvRows.length <= 1) {
+        alert("No items found in the current filtered list to export!");
+        return;
+    }
+    
+    // Compile lines (using standard UTF-8 BOM for CSV to prevent Excel encoding issues)
+    const csvContent = "\uFEFFDate,Category,Update Link,Description\n" 
+        + csvRows.slice(1).map(e => e.join(",")).join("\n");
+    
+    // Create browser downloader with explicit Blob formatting
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bigquery_releases_export_${dateStr}.csv`);
+    document.body.appendChild(link);
+    
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 // UTIL: ESCAPE SPECIAL CHARACTERS FOR INLINE HANDLERS

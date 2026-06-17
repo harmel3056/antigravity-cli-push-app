@@ -34,6 +34,25 @@
     --font-display: 'Outfit', var(--font-sans);
 }
 
+/* LIGHT THEME VARIABLES OVERRIDE */
+body.light-theme {
+    --bg-dark: #f8fafc;
+    --panel-dark: rgba(255, 255, 255, 0.75);
+    --border-glass: rgba(15, 23, 42, 0.08);
+    --border-glass-hover: rgba(15, 23, 42, 0.16);
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    
+    --shadow-soft: 0 4px 30px rgba(15, 23, 42, 0.06);
+    --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.08);
+}
+
+body.light-theme .bg-glow {
+    opacity: 0.15;
+}
+
 /* BASE RESET */
 * {
     box-sizing: border-box;
@@ -263,9 +282,18 @@ body {
 
 .filters-container {
     display: flex;
+    justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
+    width: 100%;
+}
+
+.filter-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .filters-label {
@@ -1022,4 +1050,102 @@ body {
         width: 100%;
         justify-content: space-between;
     }
+}
+
+/* UTILITY BUTTON STYLES & LIGHT THEME SPECIFICS */
+.btn-theme-toggle {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.btn-theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: var(--border-glass-hover);
+    transform: translateY(-1px);
+}
+
+body.light-theme .btn-theme-toggle {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+body.light-theme .btn-theme-toggle:hover {
+    background: rgba(15, 23, 42, 0.08);
+}
+
+.btn-theme-toggle .icon-sun {
+    color: #f59e0b;
+}
+
+.btn-csv {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    padding: 0.5rem 1.1rem;
+    height: 38px;
+}
+
+.btn-csv:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: var(--border-glass-hover);
+    transform: translateY(-2px);
+}
+
+body.light-theme .btn-csv {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+body.light-theme .btn-csv:hover {
+    background: rgba(15, 23, 42, 0.08);
+}
+
+.btn-copy {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: var(--radius-md);
+    margin-right: 0.75rem;
+}
+
+.btn-copy:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: var(--border-glass-hover);
+    transform: translateY(-2px);
+}
+
+body.light-theme .btn-copy {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+body.light-theme .btn-copy:hover {
+    background: rgba(15, 23, 42, 0.08);
+}
+
+.btn-copy.copied {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    color: #10b981 !important;
+}
+
+body.light-theme .search-box input {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+body.light-theme .status-indicator {
+    box-shadow: none !important;
 }
