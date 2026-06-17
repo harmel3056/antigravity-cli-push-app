@@ -173,25 +173,57 @@ agy-cli-projects/
 
 ---
 
-## 🛠️ Launch & Development
+## 🛠️ Setup & Local Launch
 
-The Flask application is already pre-configured and running in your workspace!
+Follow these instructions to clone, configure, and run this application locally on your machine.
 
-To view or access the application:
-1. Open your browser and navigate to **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
-2. Click **Refresh** to perform a live XML reload from Google Cloud.
-3. Use the search bar, category chips, or click **Share Update** to try out the Twitter Composer.
+### 1. Prerequisites
+Ensure you have the following software installed on your system:
+- **Python 3.8+**
+- **Git**
 
-### Manual Commands (if restarting or deploying in the future)
+### 2. Clone the Repository
+Clone this repository to your local machine using your command line:
+```bash
+git clone https://github.com/harmel3056/antigravity-cli-push-app.git
+cd antigravity-cli-push-app
+```
 
-To install dependencies, activate the virtual environment, and launch Flask manually:
-```powershell
-# 1. Install dependencies from requirements.txt
-pip install -r requirements.txt
+### 3. Create a Virtual Environment
+Set up a clean local Python virtual environment to isolate project dependencies:
+```bash
+# On Windows (PowerShell or Command Prompt)
+python -m venv .venv
 
-# 2. Activate the virtual environment
+# On macOS / Linux
+python3 -m venv .venv
+```
+
+### 4. Activate the Virtual Environment
+Activate the environment according to your operating system:
+```bash
+# On Windows (PowerShell)
 .venv\Scripts\Activate.ps1
 
-# 3. Run the Flask server
+# On Windows (Command Prompt)
+.venv\Scripts\activate.bat
+
+# On macOS / Linux (Terminal)
+source .venv/bin/activate
+```
+
+### 5. Install Dependencies
+Install all required libraries specified in the `requirements.txt` file:
+```bash
+pip install -r requirements.txt
+```
+
+### 6. Run the Application
+Launch the Flask development server:
+```bash
 python app.py
 ```
+
+By default, the server will start on **`http://127.0.0.1:5000`**. 
+
+Open your browser and navigate to **[http://127.0.0.1:5000](http://127.0.0.1:5000)** to browse and interact with the BigQuery Release Notes dashboard!
